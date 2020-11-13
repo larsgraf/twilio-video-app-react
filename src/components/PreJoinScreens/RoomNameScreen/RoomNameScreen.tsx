@@ -47,8 +47,10 @@ interface RoomNameScreenProps {
 
 const url_str = new URL(window.location.href);
 const room_id = url_str.searchParams.get('token');
-const api_endpoint = 'https://rtc2.seeyoulink.com/api/confroom/?token=';
-// 7e4819167463bba5a2beacd6bb437033d5cbec4bf393e521449fbf5d52f6c57b
+let origin = url_str.origin.indexOf('localhost') !== -1 ? 'http://localhost:3600' : url_str.origin;
+const api_endpoint = origin + '/api/confroom/?token=';
+
+console.log(api_endpoint);
 
 async function getRoomInfo(url: string) {
   const response = await fetch(url);
@@ -59,6 +61,7 @@ export default function RoomNameScreen({ name, roomName, setName, setRoomName, h
   const classes = useStyles();
   const { user } = useAppState();
   const [isLoading, setIsLoading] = useState(true);
+  const [roomCreatedBy, setRoomCreatedBy] = useState('');
 
   useEffect(() => {
     if (room_id) {
@@ -67,12 +70,15 @@ export default function RoomNameScreen({ name, roomName, setName, setRoomName, h
         setIsLoading(false);
         if (info.message === 'success') {
           setRoomName(info.data.title);
+          setRoomCreatedBy(info.data.user_name);
         } else {
           setRoomName('');
+          setRoomCreatedBy('');
         }
       });
     } else {
       setRoomName('');
+      setRoomCreatedBy('');
       setIsLoading(false);
     }
   }, []);
@@ -95,12 +101,15 @@ export default function RoomNameScreen({ name, roomName, setName, setRoomName, h
       {roomName && (
         <>
           <Typography variant="h5" className={classes.gutterBottom}>
-            Join a Room: {roomName}
+            Join a Room
           </Typography>
+          <Typography variant="subtitle1">Room name: {roomName}</Typography>
+          <Typography variant="subtitle1">Created by: {roomCreatedBy}</Typography>
+          <br></br>
           <Typography variant="body1">
             {hasUsername
               ? "Enter the name of a room you'd like to join."
-              : "Enter your name and the name of a room you'd like to join"}
+              : 'Enter your name and press "Continue" to join the room.'}
           </Typography>
           <form onSubmit={handleSubmit}>
             <div className={classes.inputContainer}>
