@@ -62,6 +62,9 @@ export default function RoomNameScreen({ name, roomName, setName, setRoomName, h
   const { user } = useAppState();
   const [isLoading, setIsLoading] = useState(true);
   const [roomCreatedBy, setRoomCreatedBy] = useState('');
+  const [roomType, setRoomType] = useState('');
+  const [roomValidFrom, setRoomValidFrom] = useState('');
+  const [roomValidTo, setRoomValidTo] = useState('');
 
   useEffect(() => {
     if (room_id) {
@@ -71,9 +74,19 @@ export default function RoomNameScreen({ name, roomName, setName, setRoomName, h
         if (info.message === 'success') {
           setRoomName(info.data.title);
           setRoomCreatedBy(info.data.user_name);
+          setRoomType(info.data.mode);
+          let valid_from_obj = new Date(info.data.accessible_from);
+          let valid_from_str = valid_from_obj.toUTCString();
+          setRoomValidFrom(valid_from_str);
+          let valid_to_obj = new Date(info.data.accessible_from);
+          let valid_to_str = valid_to_obj.toUTCString();
+          setRoomValidTo(valid_to_str);
         } else {
           setRoomName('');
           setRoomCreatedBy('');
+          setRoomType('');
+          setRoomValidFrom('');
+          setRoomValidTo('');
         }
       });
     } else {
@@ -104,7 +117,10 @@ export default function RoomNameScreen({ name, roomName, setName, setRoomName, h
             Join a Room
           </Typography>
           <Typography variant="subtitle1">Room name: {roomName}</Typography>
+          <Typography variant="subtitle1">Room mode: {roomType}</Typography>
           <Typography variant="subtitle1">Created by: {roomCreatedBy}</Typography>
+          <Typography variant="subtitle1">Valid from: {roomValidFrom}</Typography>
+          <Typography variant="subtitle1">Valid to: {roomValidTo}</Typography>
           <br></br>
           <Typography variant="body1">
             {hasUsername
