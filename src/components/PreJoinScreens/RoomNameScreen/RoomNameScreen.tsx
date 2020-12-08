@@ -11,6 +11,7 @@ import {
   Box,
 } from '@material-ui/core';
 import { useAppState } from '../../../state';
+import { Settings } from '../../../state/settings/settingsReducer';
 
 const useStyles = makeStyles((theme: Theme) => ({
   gutterBottom: {
@@ -47,8 +48,9 @@ interface RoomNameScreenProps {
 
 const url_str = new URL(window.location.href);
 const room_id = url_str.searchParams.get('token');
-let origin = url_str.origin.indexOf('localhost') !== -1 ? 'http://localhost:3600' : url_str.origin;
-const api_endpoint = origin + '/api/confroom/?token=';
+// let origin = url_str.origin.indexOf('localhost') !== -1 ? 'http://localhost:3600' : url_str.origin;
+// const api_endpoint = origin + '/api/confroom/?token=';
+const api_endpoint = 'https://rtc2.seeyoulink.com/api/confroom/?token=';
 
 console.log(api_endpoint);
 
@@ -59,12 +61,15 @@ async function getRoomInfo(url: string) {
 
 export default function RoomNameScreen({ name, roomName, setName, setRoomName, handleSubmit }: RoomNameScreenProps) {
   const classes = useStyles();
-  const { user } = useAppState();
+  const { user, dispatchSetting } = useAppState();
   const [isLoading, setIsLoading] = useState(true);
   const [roomCreatedBy, setRoomCreatedBy] = useState('');
   const [roomType, setRoomType] = useState('');
   const [roomValidFrom, setRoomValidFrom] = useState('');
   const [roomValidTo, setRoomValidTo] = useState('');
+  const [roomError, setRoomError] = useState(false);
+  const [roomNotReady, setRoomNotReady] = useState(false);
+  const [roomExpired, setRoomExpired] = useState(false);
 
   useEffect(() => {
     if (room_id) {
@@ -75,52 +80,45 @@ export default function RoomNameScreen({ name, roomName, setName, setRoomName, h
           setRoomName(info.data.title);
           setRoomCreatedBy(info.data.user_name);
           setRoomType(info.data.mode);
+
           let valid_from_obj = new Date(info.data.accessible_from);
-          let valid_from_str = valid_from_obj.toUTCString();
+          let valid_from_str = valid_from_obj.toString().split(' GMT')[0];
           setRoomValidFrom(valid_from_str);
-          let valid_to_obj = new Date(info.data.accessible_from);
-          let valid_to_str = valid_to_obj.toUTCString();
+
+          let valid_to_obj = new Date(info.data.accessible_to);
+          let valid_to_str = valid_to_obj.toString().split(' GMT')[0];
           setRoomValidTo(valid_to_str);
+
+          if (valid_from_obj.getTime() > Date.now()) {
+            setRoomNotReady(true);
+          }
+
+          if (valid_to_obj.getTime() < Date.now()) {
+            setRoomExpired(true);
+          }
+
+          dispatchSetting({ name: 'bandwidthProfileMode' as keyof Settings, value: info.data.mode as string });
         } else {
-          setRoomName('');
-          setRoomCreatedBy('');
-          setRoomType('');
-          setRoomValidFrom('');
-          setRoomValidTo('');
+          setRoomError(true);
         }
       });
     } else {
-      setRoomName('');
-      setRoomCreatedBy('');
+      setRoomError(true);
       setIsLoading(false);
     }
   }, []);
 
   const hasUsername = !window.location.search.includes('customIdentity=true') && user?.displayName;
 
-  function ErrorInfo() {
-    return (
-      <>
-        <Typography variant="h5" className={classes.gutterBottom}>
-          Invalid conference room
-        </Typography>
-        <Typography variant="body1">We can't access this room. Either room is invalid or expired.</Typography>
-      </>
-    );
-  }
-
   return (
     <>
-      {roomName && (
+      {!roomError && !roomNotReady && !roomExpired && !isLoading && (
         <>
           <Typography variant="h5" className={classes.gutterBottom}>
             Join a Room
           </Typography>
           <Typography variant="subtitle1">Room name: {roomName}</Typography>
-          <Typography variant="subtitle1">Room mode: {roomType}</Typography>
           <Typography variant="subtitle1">Created by: {roomCreatedBy}</Typography>
-          <Typography variant="subtitle1">Valid from: {roomValidFrom}</Typography>
-          <Typography variant="subtitle1">Valid to: {roomValidTo}</Typography>
           <br></br>
           <Typography variant="body1">
             {hasUsername
@@ -160,13 +158,40 @@ export default function RoomNameScreen({ name, roomName, setName, setRoomName, h
         </>
       )}
 
-      {!roomName && !isLoading && (
+      {roomError && !isLoading && (
         <>
-          <ErrorInfo />
+          <Typography variant="h5" className={classes.gutterBottom}>
+            Room expired
+          </Typography>
+          <Typography variant="subtitle1">
+            Room {roomName} expired at {roomValidTo}
+          </Typography>
         </>
       )}
 
-      {isLoading && (
+      {roomExpired && !isLoading && (
+        <>
+          <Typography variant="h5" className={classes.gutterBottom}>
+            Room expired
+          </Typography>
+          <Typography variant="subtitle1">
+            Room {roomName} expired at {roomValidTo}
+          </Typography>
+        </>
+      )}
+
+      {roomNotReady && !isLoading && (
+        <>
+          <Typography variant="h5" className={classes.gutterBottom}>
+            Room is not accessible yet
+          </Typography>
+          <Typography variant="subtitle1">
+            Room {roomName} will be accessible at {roomValidFrom}
+          </Typography>
+        </>
+      )}
+
+      {isLoading && !isLoading && (
         <>
           <Box justifyContent="center" width="100%" height="100%" display="flex" alignItems="center">
             <CircularProgress />
