@@ -48,9 +48,9 @@ interface RoomNameScreenProps {
 
 const url_str = new URL(window.location.href);
 const room_id = url_str.searchParams.get('token');
-// let origin = url_str.origin.indexOf('localhost') !== -1 ? 'http://localhost:3600' : url_str.origin;
-// const api_endpoint = origin + '/api/confroom/?token=';
-const api_endpoint = 'https://rtc2.seeyoulink.com/api/confroom/?token=';
+let origin = url_str.origin.indexOf('localhost') !== -1 ? 'http://localhost:3600' : url_str.origin;
+const api_endpoint = origin + '/api/confroom/?token=';
+// const api_endpoint = 'https://rtc2.seeyoulink.com/api/confroom/?token=';
 
 console.log(api_endpoint);
 
@@ -64,7 +64,6 @@ export default function RoomNameScreen({ name, roomName, setName, setRoomName, h
   const { user, dispatchSetting } = useAppState();
   const [isLoading, setIsLoading] = useState(true);
   const [roomCreatedBy, setRoomCreatedBy] = useState('');
-  const [roomType, setRoomType] = useState('');
   const [roomValidFrom, setRoomValidFrom] = useState('');
   const [roomValidTo, setRoomValidTo] = useState('');
   const [roomError, setRoomError] = useState(false);
@@ -79,7 +78,6 @@ export default function RoomNameScreen({ name, roomName, setName, setRoomName, h
         if (info.message === 'success') {
           setRoomName(info.data.title);
           setRoomCreatedBy(info.data.user_name);
-          setRoomType(info.data.mode);
 
           let valid_from_obj = new Date(info.data.accessible_from);
           let valid_from_str = valid_from_obj.toString().split(' GMT')[0];
@@ -161,10 +159,10 @@ export default function RoomNameScreen({ name, roomName, setName, setRoomName, h
       {roomError && !isLoading && (
         <>
           <Typography variant="h5" className={classes.gutterBottom}>
-            Room expired
+            The room is not accessible
           </Typography>
           <Typography variant="subtitle1">
-            Room {roomName} expired at {roomValidTo}
+            The room token is not valid. Please enter the valid room token and try again.
           </Typography>
         </>
       )}
