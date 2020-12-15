@@ -33,7 +33,7 @@ const VideoApp = () => {
 ReactDOM.render(
   <MuiThemeProvider theme={theme}>
     <CssBaseline />
-    <Router>
+    <Router basename="/confroom">
       <AppStateProvider>
         <Switch>
           <PrivateRoute exact path="/">
