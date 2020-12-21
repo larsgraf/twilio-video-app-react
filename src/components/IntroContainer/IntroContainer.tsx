@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { makeStyles, Theme /*Typography*/ } from '@material-ui/core';
 import Swoosh from './swoosh';
 // import VideoLogo from './VideoLogo';
-import TwilioLogo from './TwilioLogo';
+// import TwilioLogo from './TwilioLogo';
 import { useAppState } from '../../state';
 import UserMenu from './UserMenu/UserMenu';
 import { useLocation } from 'react-router-dom';
@@ -17,11 +17,13 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   container: {
     position: 'relative',
-    flex: '1',
+    display: 'flex',
+    alignItems: 'center',
+    flexDirection: 'column',
   },
   innerContainer: {
     display: 'flex',
-    width: '888px',
+    width: '600px',
     height: 'auto',
     borderRadius: '8px',
     boxShadow: '0px 2px 4px 0px rgba(40, 42, 43, 0.3)',
@@ -64,11 +66,10 @@ const useStyles = makeStyles((theme: Theme) => ({
       },
     },
   },
-  twilioLogo: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    margin: '20px',
+  clientLogo: {
+    width: '200px',
+    height: 'auto',
+    marginBottom: '20px',
   },
   content: {
     background: 'white',
@@ -88,7 +89,6 @@ const useStyles = makeStyles((theme: Theme) => ({
     },
   },
   subContentContainer: {
-    position: 'absolute',
     marginTop: '1em',
     width: '100%',
   },
@@ -101,23 +101,33 @@ interface IntroContainerProps {
 
 const IntroContainer = (props: IntroContainerProps) => {
   const classes = useStyles();
-  const { user } = useAppState();
+  const { user, roomInfo } = useAppState();
   const location = useLocation();
+  const [clientLogo, setClientLogo] = useState('');
+
+  useEffect(() => {
+    if (roomInfo) {
+      const url_str = new URL(window.location.href);
+      let origin = url_str.origin.indexOf('localhost') !== -1 ? 'http://localhost:3600' : url_str.origin;
+      let logo_url = '';
+
+      if (roomInfo.client_logo) {
+        logo_url = origin + '/client_logos/' + roomInfo.client_id + '.png';
+      } else {
+        logo_url = origin + '/client_logos/talaria.png';
+      }
+
+      setClientLogo(logo_url);
+    }
+  }, [roomInfo]);
 
   return (
     <div className={classes.background}>
-      <TwilioLogo className={classes.twilioLogo} />
       {user && location.pathname !== '/login' && <UserMenu />}
       <div className={classes.container}>
+        {clientLogo && <img className={classes.clientLogo} src={clientLogo} alt="" />}
+
         <div className={classes.innerContainer}>
-          {/* <div className={classes.swooshContainer}>
-            <div className={classes.logoContainer}>
-              <VideoLogo />
-              <Typography variant="h6" className={classes.title}>
-                Twilio Programmable Video
-              </Typography>
-            </div>
-          </div> */}
           <div className={classes.content}>{props.children}</div>
         </div>
         {props.subContent && <div className={classes.subContentContainer}>{props.subContent}</div>}

@@ -1,17 +1,9 @@
 import React, { FormEvent, useEffect, useState } from 'react';
-import {
-  Typography,
-  makeStyles,
-  TextField,
-  Grid,
-  Button,
-  InputLabel,
-  Theme,
-  CircularProgress,
-  Box,
-} from '@material-ui/core';
+import { Typography, makeStyles, TextField, Grid, Button, InputLabel, Theme } from '@material-ui/core';
 import { useAppState } from '../../../state';
 import { Settings } from '../../../state/settings/settingsReducer';
+import { Steps } from '../PreJoinScreens';
+// import { setTokenSourceMapRange } from 'typescript';
 
 const useStyles = makeStyles((theme: Theme) => ({
   gutterBottom: {
@@ -44,25 +36,20 @@ interface RoomNameScreenProps {
   setName: (name: string) => void;
   setRoomName: (roomName: string) => void;
   handleSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  setStep: (step: Steps) => void;
 }
 
-const url_str = new URL(window.location.href);
-const room_id = url_str.searchParams.get('token');
-let origin = url_str.origin.indexOf('localhost') !== -1 ? 'http://localhost:3600' : url_str.origin;
-const api_endpoint = origin + '/api/confroom/?token=';
-// const api_endpoint = 'https://rtc2.seeyoulink.com/api/confroom/?token=';
-
-console.log(api_endpoint);
-
-async function getRoomInfo(url: string) {
-  const response = await fetch(url);
-  return response.json();
-}
-
-export default function RoomNameScreen({ name, roomName, setName, setRoomName, handleSubmit }: RoomNameScreenProps) {
+export default function RoomNameScreen({
+  name,
+  roomName,
+  setName,
+  setRoomName,
+  handleSubmit,
+  setStep,
+}: RoomNameScreenProps) {
   const classes = useStyles();
-  const { user, dispatchSetting } = useAppState();
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, dispatchSetting, roomInfo } = useAppState();
+
   const [roomCreatedBy, setRoomCreatedBy] = useState('');
   const [roomValidFrom, setRoomValidFrom] = useState('');
   const [roomValidTo, setRoomValidTo] = useState('');
@@ -71,46 +58,45 @@ export default function RoomNameScreen({ name, roomName, setName, setRoomName, h
   const [roomExpired, setRoomExpired] = useState(false);
 
   useEffect(() => {
-    if (room_id) {
-      getRoomInfo(api_endpoint + room_id).then(info => {
-        console.log(info);
-        setIsLoading(false);
-        if (info.message === 'success') {
-          setRoomName(info.data.title);
-          setRoomCreatedBy(info.data.user_name);
+    if (roomInfo) {
+      setRoomError(false);
+      setRoomName(roomInfo.title);
+      setRoomCreatedBy(roomInfo.user_name);
 
-          let valid_from_obj = new Date(info.data.accessible_from);
-          let valid_from_str = valid_from_obj.toString().split(' GMT')[0];
-          setRoomValidFrom(valid_from_str);
+      let valid_from_obj = new Date(roomInfo.accessible_from);
+      let valid_from_str = valid_from_obj.toString().split(' GMT')[0];
+      setRoomValidFrom(valid_from_str);
 
-          let valid_to_obj = new Date(info.data.accessible_to);
-          let valid_to_str = valid_to_obj.toString().split(' GMT')[0];
-          setRoomValidTo(valid_to_str);
+      let valid_to_obj = new Date(roomInfo.accessible_to);
+      let valid_to_str = valid_to_obj.toString().split(' GMT')[0];
+      setRoomValidTo(valid_to_str);
 
-          if (valid_from_obj.getTime() > Date.now()) {
-            setRoomNotReady(true);
-          }
+      if (valid_from_obj.getTime() > Date.now()) {
+        setRoomNotReady(true);
+      }
 
-          if (valid_to_obj.getTime() < Date.now()) {
-            setRoomExpired(true);
-          }
+      if (valid_to_obj.getTime() < Date.now()) {
+        setRoomExpired(true);
+      }
 
-          dispatchSetting({ name: 'bandwidthProfileMode' as keyof Settings, value: info.data.mode as string });
-        } else {
-          setRoomError(true);
-        }
-      });
+      dispatchSetting({ name: 'bandwidthProfileMode' as keyof Settings, value: roomInfo.mode as string });
+
+      const userDisplayName = localStorage.getItem('userDisplayName');
+
+      if (userDisplayName) {
+        setName(userDisplayName);
+        setStep(Steps.deviceSelectionStep);
+      }
     } else {
       setRoomError(true);
-      setIsLoading(false);
     }
-  }, []);
+  }, [roomInfo]);
 
   const hasUsername = !window.location.search.includes('customIdentity=true') && user?.displayName;
 
   return (
     <>
-      {!roomError && !roomNotReady && !roomExpired && !isLoading && (
+      {!roomError && !roomNotReady && !roomExpired && (
         <>
           <Typography variant="h5" className={classes.gutterBottom}>
             Join a Room
@@ -156,7 +142,7 @@ export default function RoomNameScreen({ name, roomName, setName, setRoomName, h
         </>
       )}
 
-      {roomError && !isLoading && (
+      {roomError && (
         <>
           <Typography variant="h5" className={classes.gutterBottom}>
             The room is not accessible
@@ -167,7 +153,7 @@ export default function RoomNameScreen({ name, roomName, setName, setRoomName, h
         </>
       )}
 
-      {roomExpired && !isLoading && (
+      {roomExpired && (
         <>
           <Typography variant="h5" className={classes.gutterBottom}>
             Room expired
@@ -178,7 +164,7 @@ export default function RoomNameScreen({ name, roomName, setName, setRoomName, h
         </>
       )}
 
-      {roomNotReady && !isLoading && (
+      {roomNotReady && (
         <>
           <Typography variant="h5" className={classes.gutterBottom}>
             Room is not accessible yet
@@ -186,14 +172,6 @@ export default function RoomNameScreen({ name, roomName, setName, setRoomName, h
           <Typography variant="subtitle1">
             Room {roomName} will be accessible at {roomValidFrom}
           </Typography>
-        </>
-      )}
-
-      {isLoading && !isLoading && (
-        <>
-          <Box justifyContent="center" width="100%" height="100%" display="flex" alignItems="center">
-            <CircularProgress />
-          </Box>
         </>
       )}
     </>

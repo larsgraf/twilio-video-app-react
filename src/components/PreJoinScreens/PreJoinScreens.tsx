@@ -4,8 +4,8 @@ import IntroContainer from '../IntroContainer/IntroContainer';
 import MediaErrorSnackbar from './MediaErrorSnackbar/MediaErrorSnackbar';
 import PreflightTest from './PreflightTest/PreflightTest';
 import RoomNameScreen from './RoomNameScreen/RoomNameScreen';
-import { useAppState } from '../../state';
-import { useParams } from 'react-router-dom';
+// import { useAppState } from '../../state';
+// import { useParams } from 'react-router-dom';
 import useVideoContext from '../../hooks/useVideoContext/useVideoContext';
 import Video from 'twilio-video';
 
@@ -15,24 +15,12 @@ export enum Steps {
 }
 
 export default function PreJoinScreens() {
-  const { user } = useAppState();
   const { getAudioAndVideoTracks } = useVideoContext();
-  const { URLRoomName } = useParams();
+  // const { URLRoomName } = useParams();
   const [step, setStep] = useState(Steps.roomNameStep);
-
-  const [name, setName] = useState<string>(user?.displayName || '');
+  const [name, setName] = useState<string>('');
   const [roomName, setRoomName] = useState<string>('');
-
   const [mediaError, setMediaError] = useState<Error>();
-
-  useEffect(() => {
-    if (URLRoomName) {
-      setRoomName(URLRoomName);
-      if (user?.displayName) {
-        setStep(Steps.deviceSelectionStep);
-      }
-    }
-  }, [user, URLRoomName]);
 
   useEffect(() => {
     if (step === Steps.deviceSelectionStep) {
@@ -50,6 +38,8 @@ export default function PreJoinScreens() {
     // if (!window.location.origin.includes('twil.io')) {
     //   window.history.replaceState(null, '', window.encodeURI(`/room/${roomName}${window.location.search || ''}`));
     // }
+    console.log('HANDLE SUBMIT', name);
+    localStorage.setItem('userDisplayName', name);
     setStep(Steps.deviceSelectionStep);
   };
 
@@ -69,11 +59,12 @@ export default function PreJoinScreens() {
           setName={setName}
           setRoomName={setRoomName}
           handleSubmit={handleSubmit}
+          setStep={setStep}
         />
       )}
 
       {step === Steps.deviceSelectionStep && (
-        <DeviceSelectionScreen name={name} roomName={roomName} setStep={setStep} />
+        <DeviceSelectionScreen name={name} setName={setName} roomName={roomName} setStep={setStep} />
       )}
     </IntroContainer>
   );

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useState } from 'react';
+import React, { createContext, useContext, useEffect, useReducer, useState } from 'react';
 import { RoomType } from '../types';
 import { TwilioError } from 'twilio-video';
 import { settingsReducer, initialSettings, Settings, SettingsAction } from './settings/settingsReducer';
@@ -6,6 +6,7 @@ import useActiveSinkId from './useActiveSinkId/useActiveSinkId';
 import useFirebaseAuth from './useFirebaseAuth/useFirebaseAuth';
 import usePasscodeAuth from './usePasscodeAuth/usePasscodeAuth';
 import { User } from 'firebase';
+// import
 
 export interface StateContextType {
   error: TwilioError | null;
@@ -21,9 +22,31 @@ export interface StateContextType {
   settings: Settings;
   dispatchSetting: React.Dispatch<SettingsAction>;
   roomType?: RoomType;
+  roomInfo?: {
+    accessible_from: string;
+    accessible_to: string;
+    client_id: string;
+    client_logo: boolean;
+    client_name: string;
+    mode: string;
+    title: string;
+    user_avatar: string;
+    user_id: string;
+    user_name: string;
+  };
 }
 
 export const StateContext = createContext<StateContextType>(null!);
+
+async function getRoomInfo() {
+  const url_str = new URL(window.location.href);
+  const room_id_token = url_str.searchParams.get('token');
+  let origin = url_str.origin.indexOf('localhost') !== -1 ? 'http://localhost:3600' : url_str.origin;
+  const api_endpoint = origin + '/api/confroom/?token=' + room_id_token;
+
+  const response = await fetch(api_endpoint);
+  return response.json();
+}
 
 /*
   The 'react-hooks/rules-of-hooks' linting rules prevent React Hooks fron being called
@@ -39,6 +62,18 @@ export default function AppStateProvider(props: React.PropsWithChildren<{}>) {
   const [isFetching, setIsFetching] = useState(false);
   const [activeSinkId, setActiveSinkId] = useActiveSinkId();
   const [settings, dispatchSetting] = useReducer(settingsReducer, initialSettings);
+  const [roomInfo, setRoomInfo] = useState();
+
+  useEffect(() => {
+    getRoomInfo().then(data => {
+      if (data.message === 'success') {
+        setRoomInfo(data.data);
+        document.getElementsByTagName('TITLE')[0].innerHTML = data.data.client_name + ' - Video Conference App';
+      } else {
+        setRoomInfo(undefined);
+      }
+    });
+  }, []);
 
   let contextValue = {
     error,
@@ -48,6 +83,7 @@ export default function AppStateProvider(props: React.PropsWithChildren<{}>) {
     setActiveSinkId,
     settings,
     dispatchSetting,
+    roomInfo,
   } as StateContextType;
 
   if (process.env.REACT_APP_SET_AUTH === 'firebase') {

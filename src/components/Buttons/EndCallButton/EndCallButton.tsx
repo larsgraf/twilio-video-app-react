@@ -22,8 +22,13 @@ export default function EndCallButton(props: { className?: string }) {
   const classes = useStyles();
   const { room } = useVideoContext();
 
+  const handleDisconnect = () => {
+    localStorage.setItem('userDisplayName', '');
+    room.disconnect();
+  };
+
   return (
-    <Button onClick={() => room.disconnect()} className={clsx(classes.button, props.className)} data-cy-disconnect>
+    <Button onClick={handleDisconnect} className={clsx(classes.button, props.className)} data-cy-disconnect>
       Disconnect
     </Button>
   );
